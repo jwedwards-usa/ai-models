@@ -1,0 +1,22 @@
+# OpenAI Whisper small.en Offline Model
+
+> A stable, verified ZIP distribution of OpenAI Whisper `small.en` model weights for English speech-to-text workflows that need to operate without downloading model weights at transcription time.
+
+## Primary download
+
+- [Latest offline model ZIP](https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip): Permanent URL for the newest published `small.en` package.
+- [ZIP SHA-256](https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip.sha256): Checksum for the ZIP asset.
+- [Latest release](https://github.com/jwedwards-usa/ai-models/releases/latest): Human-readable release metadata.
+
+## Machine-readable metadata
+
+- [model.json](https://jwedwards-usa.github.io/ai-models/model.json): Model identity, direct download URLs, offline requirements, and a Python usage example.
+- [llms-full.txt](https://jwedwards-usa.github.io/ai-models/llms-full.txt): Expanded context for assistants and retrieval systems.
+
+## Important usage note
+
+The ZIP contains the official `small.en.pt` model checkpoint plus a manifest and checksums. It does not contain Python, PyTorch, FFmpeg, or the Whisper runtime. For fully offline transcription, those runtime dependencies must already be installed or cached locally.
+
+## Upstream
+
+- [OpenAI Whisper](https://github.com/openai/whisper)
