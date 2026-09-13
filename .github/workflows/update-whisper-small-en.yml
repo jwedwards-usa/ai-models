@@ -1,0 +1,263 @@
+name: Update Whisper small.en offline model
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: whisper-small-en-model-publisher
+  cancel-in-progress: false
+
+env:
+  MODEL_NAME: small.en
+  MODEL_FILENAME: small.en.pt
+  ASSET_NAME: openai-whisper-small-en-offline-model.zip
+
+jobs:
+  publish:
+    name: Check and publish latest model
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Resolve current upstream model
+        id: upstream
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          upstream_commit="$(
+            curl --fail --silent --show-error --location \
+              --retry 4 --retry-all-errors \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/openai/whisper/commits/main |
+              jq -er '.sha'
+          )"
+
+          init_url="https://raw.githubusercontent.com/openai/whisper/${upstream_commit}/whisper/__init__.py"
+          curl --fail --silent --show-error --location \
+            --retry 4 --retry-all-errors \
+            --output upstream-whisper-init.py \
+            "${init_url}"
+
+          model_url="$(
+            python3 - <<'PY'
+          import ast
+
+          with open("upstream-whisper-init.py", "r", encoding="utf-8") as handle:
+              tree = ast.parse(handle.read())
+
+          models = None
+          for node in tree.body:
+              if not isinstance(node, ast.Assign):
+                  continue
+              if any(isinstance(target, ast.Name) and target.id == "_MODELS" for target in node.targets):
+                  models = ast.literal_eval(node.value)
+                  break
+
+          if not isinstance(models, dict) or "small.en" not in models:
+              raise SystemExit("Could not resolve small.en from upstream Whisper _MODELS.")
+
+          print(models["small.en"])
+          PY
+          )"
+
+          expected_sha="$(
+            MODEL_URL="${model_url}" python3 - <<'PY'
+          import os
+          import re
+
+          url = os.environ["MODEL_URL"]
+          match = re.search(r"/([0-9a-fA-F]{64})/small\.en\.pt(?:\?.*)?$", url)
+          if not match:
+              raise SystemExit(
+                  "The upstream small.en URL no longer contains the expected SHA-256 fingerprint."
+              )
+          print(match.group(1).lower())
+          PY
+          )"
+
+          short_sha="${expected_sha:0:12}"
+          release_tag="whisper-small-en-${short_sha}"
+
+          echo "upstream_commit=${upstream_commit}" >> "${GITHUB_OUTPUT}"
+          echo "model_url=${model_url}" >> "${GITHUB_OUTPUT}"
+          echo "expected_sha=${expected_sha}" >> "${GITHUB_OUTPUT}"
+          echo "short_sha=${short_sha}" >> "${GITHUB_OUTPUT}"
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+
+          {
+            echo "### Upstream check"
+            echo
+            echo "- OpenAI Whisper commit: \`${upstream_commit}\`"
+            echo "- Model fingerprint: \`${expected_sha}\`"
+            echo "- Candidate release: \`${release_tag}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Check whether this model is already published
+        id: published
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            {
+              echo
+              echo "No download was needed. This exact model fingerprint is already published."
+            } >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+            {
+              echo
+              echo "A new model fingerprint is available. Downloading and publishing it now."
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Download and verify model
+        if: steps.published.outputs.changed == 'true'
+        shell: bash
+        env:
+          MODEL_URL: ${{ steps.upstream.outputs.model_url }}
+          EXPECTED_SHA: ${{ steps.upstream.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+
+          curl --fail --show-error --location \
+            --retry 5 --retry-all-errors \
+            --output "${MODEL_FILENAME}" \
+            "${MODEL_URL}"
+
+          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" | sha256sum --check --strict
+
+      - name: Build offline model ZIP
+        if: steps.published.outputs.changed == 'true'
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.upstream.outputs.expected_sha }}
+          SHORT_SHA: ${{ steps.upstream.outputs.short_sha }}
+          UPSTREAM_COMMIT: ${{ steps.upstream.outputs.upstream_commit }}
+          MODEL_URL: ${{ steps.upstream.outputs.model_url }}
+          RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          model_bytes="$(stat --format='%s' "${MODEL_FILENAME}")"
+          published_at="$(date --utc +'%Y-%m-%dT%H:%M:%SZ')"
+
+          jq -n \
+            --arg schema_version "1" \
+            --arg model "openai/whisper small.en" \
+            --arg model_filename "${MODEL_FILENAME}" \
+            --arg model_sha256 "${EXPECTED_SHA}" \
+            --arg model_url "${MODEL_URL}" \
+            --arg upstream_commit "${UPSTREAM_COMMIT}" \
+            --arg release_tag "${RELEASE_TAG}" \
+            --arg published_at "${published_at}" \
+            --argjson model_bytes "${model_bytes}" \
+            '{
+              schema_version: ($schema_version | tonumber),
+              model: $model,
+              language: "English",
+              task: "automatic speech recognition / transcription",
+              format: "PyTorch checkpoint (.pt)",
+              model_filename: $model_filename,
+              model_sha256: $model_sha256,
+              model_bytes: $model_bytes,
+              upstream_model_url: $model_url,
+              upstream_repository: "https://github.com/openai/whisper",
+              upstream_commit: $upstream_commit,
+              local_release_tag: $release_tag,
+              packaged_at_utc: $published_at,
+              offline_note: "After this ZIP and a compatible Whisper runtime are available locally, loading the model weights does not require an external network connection."
+            }' > manifest.json
+
+          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" > SHA256SUMS
+
+          cat > MODEL-README.txt <<EOF
+          OpenAI Whisper small.en offline model weights
+          ==============================================
+
+          Model file: ${MODEL_FILENAME}
+          SHA-256: ${EXPECTED_SHA}
+          Upstream: https://github.com/openai/whisper
+          Upstream commit: ${UPSTREAM_COMMIT}
+
+          This package contains the official OpenAI Whisper small.en model checkpoint
+          plus integrity and source metadata. It does not contain the Whisper runtime,
+          PyTorch, Python, or FFmpeg.
+
+          Example offline loading after extracting this ZIP:
+
+              import whisper
+              model = whisper.load_model("small.en", download_root="./whisper-small-en")
+              result = model.transcribe("audio.mp3", language="en")
+              print(result["text"])
+
+          The extracted directory passed as download_root must contain small.en.pt.
+          Runtime dependencies must already be installed locally before going offline.
+
+          Upstream license:
+          https://github.com/openai/whisper/blob/main/LICENSE
+          EOF
+
+          zip -1 "${ASSET_NAME}" \
+            "${MODEL_FILENAME}" \
+            manifest.json \
+            SHA256SUMS \
+            MODEL-README.txt
+
+          sha256sum "${ASSET_NAME}" > "${ASSET_NAME}.sha256"
+
+          cat > release-notes.md <<EOF
+          ## OpenAI Whisper \`small.en\` offline model
+
+          Verified and repackaged from the official OpenAI Whisper model source.
+
+          - **Model:** \`small.en\`
+          - **Checkpoint:** \`${MODEL_FILENAME}\`
+          - **Model SHA-256:** \`${EXPECTED_SHA}\`
+          - **Upstream Whisper commit:** \`${UPSTREAM_COMMIT}\`
+          - **Stable asset name:** \`${ASSET_NAME}\`
+
+          The ZIP also includes \`manifest.json\`, \`SHA256SUMS\`, and \`MODEL-README.txt\`.
+
+          Once the ZIP and a compatible Whisper runtime are present locally, the model
+          can be loaded for transcription without downloading model weights from an
+          external network.
+          EOF
+
+      - name: Publish GitHub Release
+        if: steps.published.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
+          SHORT_SHA: ${{ steps.upstream.outputs.short_sha }}
+        run: |
+          set -euo pipefail
+
+          gh release create "${RELEASE_TAG}" \
+            "${ASSET_NAME}" \
+            "${ASSET_NAME}.sha256" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "OpenAI Whisper small.en offline model (${SHORT_SHA})" \
+            --notes-file release-notes.md \
+            --latest
+
+          {
+            echo
+            echo "Published:"
+            echo "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${ASSET_NAME}"
+          } >> "${GITHUB_STEP_SUMMARY}"
