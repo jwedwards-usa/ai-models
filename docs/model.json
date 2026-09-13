@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "name": "OpenAI Whisper small.en offline model",
+  "model_id": "openai/whisper-small.en",
+  "model_family": "Whisper",
+  "publisher": "OpenAI",
+  "language": "en",
+  "task": "automatic speech recognition / speech-to-text transcription",
+  "parameters_approx": 244000000,
+  "artifact_filename": "openai-whisper-small-en-offline-model.zip",
+  "archive_format": "application/zip",
+  "model_format": "PyTorch checkpoint (.pt) inside ZIP",
+  "download_url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip",
+  "checksum_url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip.sha256",
+  "release_page": "https://github.com/jwedwards-usa/ai-models/releases/latest",
+  "project_page": "https://jwedwards-usa.github.io/ai-models/",
+  "source_repository": "https://github.com/openai/whisper",
+  "upstream_license": "https://github.com/openai/whisper/blob/main/LICENSE",
+  "versioning": "The GitHub Action resolves the current official small.en URL from openai/whisper and treats the SHA-256 fingerprint embedded in that URL as the model version. A new release is created only when that fingerprint has not already been published here.",
+  "archive_contents": [
+    "small.en.pt",
+    "manifest.json",
+    "SHA256SUMS",
+    "MODEL-README.txt"
+  ],
+  "offline": {
+    "model_download_required_once": true,
+    "external_network_required_for_model_loading_after_download": false,
+    "runtime_included": false,
+    "runtime_note": "A compatible Whisper runtime and its dependencies, such as Python, openai-whisper, PyTorch, and FFmpeg, must already be installed or cached locally."
+  },
+  "python_example": "import whisper\nmodel = whisper.load_model(\"small.en\", download_root=\"./whisper-small-en\")\nresult = model.transcribe(\"audio.mp3\", language=\"en\")\nprint(result[\"text\"])"
+}
