@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jwedwards-usa.github.io/ai-models/sitemap.xml
