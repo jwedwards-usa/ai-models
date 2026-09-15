@@ -1,38 +1,28 @@
-# OpenAI Whisper small.en Offline Model
+# ai-models
 
-> Verified OpenAI Whisper `small.en` weights for offline English transcription, available both as a Python/OpenAI Whisper checkpoint ZIP and as `ggml-small.en.bin` for official `whisper.cpp` / `whisper-cli`.
+Whisper small.en files for local transcription.
 
-## Preferred whisper.cpp download
+## whisper.cpp
 
-- [ggml-small.en.bin](https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin): Stable latest URL for the whisper.cpp-compatible GGML model.
-- [GGML SHA-256](https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256): Integrity checksum for the GGML model.
-- [GGML provenance manifest](https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.manifest.json): Source model SHA-256 plus exact whisper.cpp converter commit.
-- [whisper.cpp discovery page](https://jwedwards-usa.github.io/ai-models/whisper-cpp-small-en.html): Human- and crawler-friendly usage page.
+Model: https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin
+SHA-256: https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256
+Manifest: https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.manifest.json
 
-Use with a locally available `whisper-cli`:
-
+Use:
 `whisper-cli -m ggml-small.en.bin -f audio.wav`
 
-## Python / OpenAI Whisper download
+If direct binary download fails, use the latest successful `Update Whisper small.en offline model` Actions run and artifact matching `openai-whisper-small-en-ggml-*`.
 
-- [Latest offline model ZIP](https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip): Contains the verified `small.en.pt` checkpoint.
-- [ZIP SHA-256](https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip.sha256): Checksum for the ZIP asset.
-- [Latest release](https://github.com/jwedwards-usa/ai-models/releases/latest): Human-readable release metadata.
+## OpenAI Whisper / PyTorch
 
-## GitHub Actions artifact transport
+ZIP: https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip
+SHA-256: https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip.sha256
 
-Each successful manual model workflow run uploads an artifact named `openai-whisper-small-en-ggml-<first-12-characters-of-model-sha256>` containing `ggml-small.en.bin`, its SHA-256 file, and its provenance manifest. This is intended for GitHub API/connector clients that can download workflow artifacts even when direct binary release transport is unavailable.
+## ChatGPT
 
-## Machine-readable metadata
+Prompt: https://jwedwards-usa.github.io/ai-models/chatgpt-prompt.txt
 
-- [model.json](https://jwedwards-usa.github.io/ai-models/model.json): Direct GGML and PyTorch URLs, formats, runtime requirements, and Actions artifact naming.
-- [llms-full.txt](https://jwedwards-usa.github.io/ai-models/llms-full.txt): Expanded retrieval and provenance context.
+## Metadata
 
-## Important usage note
-
-These downloads contain model data, not a transcription runtime. For fully offline transcription, the selected runtime and dependencies must already be installed locally. Use `ggml-small.en.bin` with a compatible `whisper.cpp` `whisper-cli`; use `small.en.pt` with OpenAI Whisper or a compatible PyTorch runtime.
-
-## Upstream
-
-- [OpenAI Whisper](https://github.com/openai/whisper)
-- [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
+https://jwedwards-usa.github.io/ai-models/model.json
+https://jwedwards-usa.github.io/ai-models/llms-full.txt
