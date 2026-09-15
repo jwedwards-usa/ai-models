@@ -1,5 +1,7 @@
 # AI Models
 
+**GitHub Pages:** https://jwedwards-usa.github.io/ai-models/
+
 A small distribution repository for AI model artifacts that are useful in offline workflows.
 
 ## OpenAI Whisper `small.en`
@@ -26,6 +28,8 @@ Open **Actions → Update Whisper small.en offline model → Run workflow**.
 The updater is intentionally `workflow_dispatch` only. Re-running it is safe: if the upstream `small.en` model fingerprint matches a release already published in this repository, the workflow exits without downloading or publishing the checkpoint again.
 
 ## GitHub Pages
+
+Visit the published site at **https://jwedwards-usa.github.io/ai-models/**.
 
 The static site lives in [`docs/`](docs/) and is deployed by a separate Pages workflow. It includes:
 
