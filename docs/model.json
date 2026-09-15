@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "name": "OpenAI Whisper small.en offline model",
   "model_id": "openai/whisper-small.en",
   "model_family": "Whisper",
@@ -7,27 +7,52 @@
   "language": "en",
   "task": "automatic speech recognition / speech-to-text transcription",
   "parameters_approx": 244000000,
-  "artifact_filename": "openai-whisper-small-en-offline-model.zip",
-  "archive_format": "application/zip",
-  "model_format": "PyTorch checkpoint (.pt) inside ZIP",
-  "download_url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip",
-  "checksum_url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip.sha256",
-  "release_page": "https://github.com/jwedwards-usa/ai-models/releases/latest",
   "project_page": "https://jwedwards-usa.github.io/ai-models/",
+  "whisper_cpp_page": "https://jwedwards-usa.github.io/ai-models/whisper-cpp-small-en.html",
+  "release_page": "https://github.com/jwedwards-usa/ai-models/releases/latest",
   "source_repository": "https://github.com/openai/whisper",
+  "converter_repository": "https://github.com/ggml-org/whisper.cpp",
   "upstream_license": "https://github.com/openai/whisper/blob/main/LICENSE",
-  "versioning": "The GitHub Action resolves the current official small.en URL from openai/whisper and treats the SHA-256 fingerprint embedded in that URL as the model version. A new release is created only when that fingerprint has not already been published here.",
-  "archive_contents": [
-    "small.en.pt",
-    "manifest.json",
-    "SHA256SUMS",
-    "MODEL-README.txt"
-  ],
-  "offline": {
-    "model_download_required_once": true,
-    "external_network_required_for_model_loading_after_download": false,
-    "runtime_included": false,
-    "runtime_note": "A compatible Whisper runtime and its dependencies, such as Python, openai-whisper, PyTorch, and FFmpeg, must already be installed or cached locally."
+  "versioning": "The manual GitHub Action resolves the current official small.en URL from openai/whisper and treats the SHA-256 fingerprint embedded in that URL as the model version. The large upstream checkpoint is downloaded only when that fingerprint has not already been published here.",
+  "artifacts": {
+    "whisper_cpp_ggml": {
+      "filename": "ggml-small.en.bin",
+      "format": "whisper.cpp GGML",
+      "download_url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin",
+      "checksum_url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256",
+      "provenance_manifest_url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.manifest.json",
+      "runtime": "whisper.cpp whisper-cli",
+      "usage": "whisper-cli -m ggml-small.en.bin -f audio.wav",
+      "runtime_included": false,
+      "external_network_required_for_model_loading_after_download": false
+    },
+    "openai_whisper_pytorch": {
+      "filename": "openai-whisper-small-en-offline-model.zip",
+      "archive_format": "application/zip",
+      "model_format": "PyTorch checkpoint (.pt) inside ZIP",
+      "download_url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip",
+      "checksum_url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip.sha256",
+      "archive_contents": [
+        "small.en.pt",
+        "manifest.json",
+        "SHA256SUMS",
+        "MODEL-README.txt"
+      ],
+      "runtime": "OpenAI Whisper / compatible Python runtime",
+      "runtime_included": false,
+      "external_network_required_for_model_loading_after_download": false
+    }
   },
+  "actions_artifact": {
+    "name_pattern": "openai-whisper-small-en-ggml-<first-12-characters-of-model-sha256>",
+    "contents": [
+      "ggml-small.en.bin",
+      "ggml-small.en.bin.sha256",
+      "ggml-small.en.manifest.json"
+    ],
+    "retention_days": 90,
+    "purpose": "Connector- and API-friendly transport for environments that can download GitHub Actions artifacts but cannot fetch binary release assets directly. The artifact is recreated on every successful manual workflow run without re-downloading the upstream PyTorch checkpoint when the model version is unchanged."
+  },
+  "offline_note": "Model files can be used without external network access after the selected runtime and all of its dependencies are installed locally. This repository distributes model data, not whisper-cli, Python, PyTorch, or FFmpeg.",
   "python_example": "import whisper\nmodel = whisper.load_model(\"small.en\", download_root=\"./whisper-small-en\")\nresult = model.transcribe(\"audio.mp3\", language=\"en\")\nprint(result[\"text\"])"
 }
