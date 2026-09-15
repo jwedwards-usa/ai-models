@@ -4,14 +4,16 @@ Whisper small.en files for local transcription.
 
 ## whisper.cpp
 
-Model: https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin
-SHA-256: https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256
+ZIP: https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip
+ZIP SHA-256: https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip.sha256
+Raw model: https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin
+Model SHA-256: https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256
 Manifest: https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.manifest.json
 
 Use:
-`whisper-cli -m ggml-small.en.bin -f audio.wav`
+`unzip ggml-small.en.zip && whisper-cli -m ggml-small.en.bin -f audio.wav`
 
-If direct binary download fails, use the latest successful `Update Whisper small.en offline model` Actions run and artifact matching `openai-whisper-small-en-ggml-*`.
+If the release ZIP cannot be downloaded, use the latest successful `Update Whisper small.en` Actions artifact matching `openai-whisper-small-en-ggml-*`.
 
 ## OpenAI Whisper / PyTorch
 
