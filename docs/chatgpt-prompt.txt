@@ -1,0 +1,14 @@
+Transcribe my uploaded audio at high quality entirely inside ChatGPT's Linux VM. Do not send the audio to an external ASR service.
+
+Use official whisper.cpp locally. Target small.en; use base.en only if small.en cannot be obtained. Never use Tiny for the final transcript.
+
+Get the model from this repository first:
+https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin
+
+If raw .bin downloads are blocked, use the GitHub connector to find the latest successful "Update Whisper small.en offline model" run in jwedwards-usa/ai-models and download its Actions artifact named openai-whisper-small-en-ggml-*. Extract ggml-small.en.bin from that artifact.
+
+If that artifact is unavailable, search GitHub for live, non-expired Actions artifacts from desktop apps whose CI explicitly downloads and bundles ggml-small.en.bin or ggml-base.en.bin. Inspect .github/workflows/*.yml for the pattern: curl ... ggml-*.en.bin, app build/package, then actions/upload-artifact. Query that repo's /actions/artifacts, download the artifact ZIP through the GitHub connector, and extract the embedded model.
+
+Also download the latest official ggml-org/whisper.cpp Linux x64 Actions artifact containing whisper-cli. Run locally with beam search, continuous context, and a domain-vocabulary prompt.
+
+Return a full validated .vtt. Conservatively fix only obvious ASR errors. Provide the sandbox download link.
