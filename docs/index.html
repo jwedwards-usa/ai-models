@@ -39,7 +39,7 @@ whisper-cli -m ggml-small.en.bin -f audio.wav</pre>
     <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip.sha256">ggml-small.en.zip.sha256</a></dt>
     <dd>ZIP checksum.</dd>
     <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin">ggml-small.en.bin</a></dt>
-    <dd>Raw whisper.cpp model.</dd>
+    <dd>Raw whisper.cpp model; direct <code>.bin</code> downloads are often blocked in ChatGPT environments.</dd>
     <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256">ggml-small.en.bin.sha256</a></dt>
     <dd>Model checksum.</dd>
     <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.manifest.json">ggml-small.en.manifest.json</a></dt>
@@ -54,10 +54,12 @@ whisper-cli -m ggml-small.en.bin -f audio.wav</pre>
   <p><a href="chatgpt-prompt.txt">Plain-text prompt</a></p>
   <pre>Transcribe my uploaded audio entirely inside ChatGPT's Linux VM. Do not send the audio to an external ASR service.
 
-Use official whisper.cpp with small.en. Download and extract:
+Use official whisper.cpp with small.en. Download and extract this ZIP directly:
 https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip
 
-If that download is blocked, use the GitHub connector to get the latest successful "Update Whisper small.en" Actions artifact named openai-whisper-small-en-ggml-* from jwedwards-usa/ai-models and extract ggml-small.en.bin.
+Use the ZIP instead of the raw .bin URL because direct .bin downloads are often blocked in ChatGPT environments.
+
+If the ZIP download is blocked, use the GitHub connector to get the latest successful "Update Whisper small.en" Actions artifact named openai-whisper-small-en-ggml-* from jwedwards-usa/ai-models and extract ggml-small.en.bin.
 
 Also get the latest official ggml-org/whisper.cpp Linux x64 Actions artifact containing whisper-cli. Run locally with beam search, continuous context, and a domain-vocabulary prompt.
 
