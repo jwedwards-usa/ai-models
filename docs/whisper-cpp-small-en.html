@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>whisper-cpp-small-en(7)</title>
-  <meta name="description" content="ggml-small.en.bin for whisper.cpp: download, checksum, provenance, and usage.">
+  <meta name="description" content="Whisper small.en for whisper.cpp: ZIP, raw model, checksum, provenance, and usage.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="https://jwedwards-usa.github.io/ai-models/whisper-cpp-small-en.html">
   <style>
@@ -25,19 +25,22 @@
   <p><code>ggml-small.en.bin</code> — Whisper <code>small.en</code> for whisper.cpp.</p>
 
   <h2>SYNOPSIS</h2>
-  <pre>whisper-cli -m ggml-small.en.bin -f audio.wav</pre>
+  <pre>unzip ggml-small.en.zip
+whisper-cli -m ggml-small.en.bin -f audio.wav</pre>
 
   <h2>FILES</h2>
-  <p><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin">ggml-small.en.bin</a><br>
+  <p><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip">ggml-small.en.zip</a> — preferred download<br>
+  <a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip.sha256">ggml-small.en.zip.sha256</a><br>
+  <a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin">ggml-small.en.bin</a> — raw model<br>
   <a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256">ggml-small.en.bin.sha256</a><br>
   <a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.manifest.json">ggml-small.en.manifest.json</a></p>
 
   <h2>DESCRIPTION</h2>
-  <p>The workflow verifies OpenAI's <code>small.en.pt</code>, converts it with the official whisper.cpp converter, and records the source hash and converter commit.</p>
+  <p>The ZIP contains the raw model, model checksum, and provenance manifest.</p>
 
   <h2>ACTIONS ARTIFACT</h2>
   <pre>openai-whisper-small-en-ggml-&lt;model-sha-prefix&gt;</pre>
-  <p>Use the latest successful manual workflow run when direct binary release downloads are unavailable.</p>
+  <p>Use the latest successful manual workflow run if the release ZIP cannot be downloaded.</p>
 
   <h2>SEE ALSO</h2>
   <p><a href="./">ai-models(7)</a> · <a href="chatgpt-prompt.txt">ChatGPT prompt</a> · <a href="model.json">model.json</a> · <a href="https://github.com/ggml-org/whisper.cpp">whisper.cpp</a></p>
