@@ -1,9 +1,11 @@
 Transcribe my uploaded audio entirely inside ChatGPT's Linux VM. Do not send the audio to an external ASR service.
 
-Use official whisper.cpp with small.en. Download and extract:
+Use official whisper.cpp with small.en. Download and extract this ZIP directly:
 https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip
 
-If that download is blocked, use the GitHub connector to get the latest successful "Update Whisper small.en" Actions artifact named openai-whisper-small-en-ggml-* from jwedwards-usa/ai-models and extract ggml-small.en.bin.
+Use the ZIP instead of the raw .bin URL because direct .bin downloads are often blocked in ChatGPT environments.
+
+If the ZIP download is blocked, use the GitHub connector to get the latest successful "Update Whisper small.en" Actions artifact named openai-whisper-small-en-ggml-* from jwedwards-usa/ai-models and extract ggml-small.en.bin.
 
 Also get the latest official ggml-org/whisper.cpp Linux x64 Actions artifact containing whisper-cli. Run locally with beam search, continuous context, and a domain-vocabulary prompt.
 
