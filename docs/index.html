@@ -3,303 +3,73 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Download OpenAI Whisper small.en Model ZIP for Offline Speech-to-Text</title>
-  <meta name="description" content="Download a verified OpenAI Whisper small.en model ZIP for offline English speech-to-text transcription. Stable latest URL, SHA-256 checksum, machine-readable metadata, and local loading instructions.">
-  <meta name="keywords" content="Whisper small.en download, OpenAI Whisper offline model, offline speech to text, speech recognition model, small.en.pt, Whisper model ZIP, local transcription">
-  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-  <meta name="author" content="jwedwards-usa">
-  <meta name="theme-color" content="#0b1020">
-
+  <title>ai-models(7) — Whisper small.en</title>
+  <meta name="description" content="Verified Whisper small.en files for whisper.cpp and OpenAI Whisper, with checksums, provenance, and a ChatGPT local-transcription prompt.">
+  <meta name="robots" content="index,follow">
   <link rel="canonical" href="https://jwedwards-usa.github.io/ai-models/">
-  <link rel="alternate" type="application/json" href="https://jwedwards-usa.github.io/ai-models/model.json" title="Machine-readable model metadata">
-  <link rel="alternate" type="text/plain" href="https://jwedwards-usa.github.io/ai-models/llms.txt" title="LLM discovery index">
-
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="OpenAI Whisper small.en Offline Model ZIP">
-  <meta property="og:description" content="A stable, verified ZIP of Whisper small.en model weights for offline English speech-to-text transcription.">
-  <meta property="og:url" content="https://jwedwards-usa.github.io/ai-models/">
-  <meta property="og:site_name" content="AI Models">
-
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="OpenAI Whisper small.en Offline Model ZIP">
-  <meta name="twitter:description" content="Verified Whisper small.en weights with a stable latest-download URL and offline loading instructions.">
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
-    "name": "OpenAI Whisper small.en Offline Model ZIP",
-    "alternateName": "Whisper small.en offline speech-to-text model",
-    "description": "A verified ZIP distribution of the official OpenAI Whisper small.en English speech recognition checkpoint for local and offline transcription workflows.",
-    "url": "https://jwedwards-usa.github.io/ai-models/",
-    "sameAs": [
-      "https://github.com/jwedwards-usa/ai-models",
-      "https://github.com/openai/whisper"
-    ],
-    "keywords": [
-      "OpenAI Whisper",
-      "Whisper small.en",
-      "offline speech-to-text",
-      "automatic speech recognition",
-      "ASR",
-      "English transcription"
-    ],
-    "inLanguage": "en",
-    "creator": {
-      "@type": "Organization",
-      "name": "OpenAI",
-      "url": "https://github.com/openai/whisper"
-    },
-    "license": "https://github.com/openai/whisper/blob/main/LICENSE",
-    "distribution": {
-      "@type": "DataDownload",
-      "name": "openai-whisper-small-en-offline-model.zip",
-      "contentUrl": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip",
-      "encodingFormat": "application/zip"
-    }
-  }
-  </script>
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "Can Whisper small.en transcribe audio offline?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes. After the small.en model weights and a compatible Whisper runtime are installed locally, transcription can run without downloading model weights from an external network."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What is inside the Whisper small.en offline ZIP?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "The ZIP contains small.en.pt, manifest.json, SHA256SUMS, and MODEL-README.txt. It does not bundle Python, PyTorch, FFmpeg, or the Whisper runtime."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How is the latest Whisper small.en model detected?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "A manually triggered GitHub Action resolves the current official small.en model URL from OpenAI Whisper and uses the SHA-256 fingerprint embedded in that URL as the model version. The large checkpoint is downloaded only when that fingerprint has not already been published."
-        }
-      }
-    ]
-  }
-  </script>
-
+  <link rel="alternate" type="application/json" href="model.json">
+  <link rel="alternate" type="text/plain" href="llms.txt">
   <style>
-    :root {
-      color-scheme: dark;
-      --bg: #0b1020;
-      --panel: #11182b;
-      --panel-2: #162039;
-      --text: #f4f7ff;
-      --muted: #aab7d4;
-      --line: #2a3858;
-      --accent: #7dd3fc;
-      --accent-2: #a7f3d0;
-      --code: #08101f;
-      --shadow: 0 24px 70px rgba(0,0,0,.28);
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at 12% 8%, rgba(125,211,252,.12), transparent 30rem),
-        radial-gradient(circle at 92% 12%, rgba(167,243,208,.10), transparent 28rem),
-        var(--bg);
-      color: var(--text);
-      line-height: 1.65;
-    }
-    a { color: var(--accent); }
-    a:hover { color: #bae6fd; }
-    .wrap { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
-    header { padding: 28px 0 0; }
-    nav { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
-    .brand { color: var(--text); text-decoration: none; font-weight: 800; letter-spacing: -.02em; }
-    .navlinks { display: flex; gap: 18px; flex-wrap: wrap; }
-    .navlinks a { color: var(--muted); text-decoration: none; font-size: .95rem; }
-    .hero { padding: 96px 0 66px; display: grid; grid-template-columns: 1.2fr .8fr; gap: 42px; align-items: center; }
-    .eyebrow { display: inline-flex; padding: 6px 11px; border: 1px solid var(--line); border-radius: 999px; color: var(--accent-2); background: rgba(167,243,208,.05); font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
-    h1 { font-size: clamp(2.55rem, 6vw, 5.4rem); line-height: .98; letter-spacing: -.055em; margin: 20px 0 24px; max-width: 920px; }
-    .lead { color: var(--muted); font-size: clamp(1.08rem, 2vw, 1.3rem); max-width: 760px; }
-    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
-    .button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border-radius: 12px; text-decoration: none; font-weight: 800; border: 1px solid var(--line); }
-    .button.primary { background: var(--text); color: #07101f; border-color: var(--text); }
-    .button.secondary { background: rgba(255,255,255,.03); color: var(--text); }
-    .card { background: linear-gradient(180deg, rgba(22,32,57,.94), rgba(17,24,43,.94)); border: 1px solid var(--line); border-radius: 22px; padding: 26px; box-shadow: var(--shadow); }
-    .card h2, .card h3 { margin-top: 0; }
-    .spec { display: grid; gap: 13px; margin: 0; }
-    .spec div { display: grid; grid-template-columns: 125px 1fr; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(42,56,88,.65); }
-    .spec div:last-child { border-bottom: 0; padding-bottom: 0; }
-    .spec dt { color: var(--muted); }
-    .spec dd { margin: 0; font-weight: 750; overflow-wrap: anywhere; }
-    section { padding: 34px 0 58px; }
-    h2 { font-size: clamp(1.75rem, 3.2vw, 2.7rem); letter-spacing: -.035em; line-height: 1.1; }
-    .section-lead { max-width: 760px; color: var(--muted); }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 26px; }
-    .mini { border: 1px solid var(--line); background: rgba(17,24,43,.72); border-radius: 18px; padding: 22px; }
-    .mini h3 { margin: 0 0 8px; font-size: 1.08rem; }
-    .mini p { margin: 0; color: var(--muted); }
-    pre { margin: 22px 0 0; background: var(--code); border: 1px solid var(--line); padding: 20px; border-radius: 16px; overflow-x: auto; line-height: 1.55; }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: .92em; }
-    .plain-code { overflow-wrap: anywhere; color: var(--accent-2); }
-    .notice { margin-top: 22px; padding: 16px 18px; border-left: 3px solid var(--accent-2); background: rgba(167,243,208,.06); color: #d9fce9; border-radius: 0 10px 10px 0; }
-    details { border-top: 1px solid var(--line); padding: 18px 0; }
-    details:last-child { border-bottom: 1px solid var(--line); }
-    summary { cursor: pointer; font-weight: 800; }
-    details p { color: var(--muted); max-width: 880px; }
-    footer { padding: 28px 0 52px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 20px; }
-    .footer-row { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
-    @media (max-width: 850px) {
-      .hero { grid-template-columns: 1fr; padding-top: 68px; }
-      .grid { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 560px) {
-      .wrap { width: min(100% - 24px, 1120px); }
-      nav { align-items: flex-start; flex-direction: column; }
-      .hero { padding-top: 54px; }
-      .spec div { grid-template-columns: 1fr; gap: 2px; }
-    }
+    :root { color-scheme: light dark; }
+    body { max-width: 900px; margin: 3rem auto; padding: 0 1rem; font: 16px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+    h1 { font-size: 1.35rem; }
+    h2 { margin-top: 2.25rem; font-size: 1rem; }
+    h2::after { content: ""; display: block; border-bottom: 1px solid currentColor; opacity: .25; margin-top: .25rem; }
+    a { overflow-wrap: anywhere; }
+    pre { padding: 1rem; overflow: auto; border: 1px solid color-mix(in srgb,currentColor 25%,transparent); white-space: pre-wrap; }
+    code { font: inherit; }
+    dt { font-weight: 700; margin-top: .7rem; }
+    dd { margin-left: 2rem; overflow-wrap: anywhere; }
   </style>
 </head>
 <body>
-  <header class="wrap">
-    <nav aria-label="Primary navigation">
-      <a class="brand" href="./">AI Models / Whisper small.en</a>
-      <div class="navlinks">
-        <a href="#download">Download</a>
-        <a href="#offline">Offline use</a>
-        <a href="model.json">model.json</a>
-        <a href="llms.txt">llms.txt</a>
-        <a href="https://github.com/jwedwards-usa/ai-models">GitHub</a>
-      </div>
-    </nav>
-  </header>
+  <h1>AI-MODELS(7)</h1>
 
-  <main>
-    <section class="hero wrap">
-      <div>
-        <span class="eyebrow">English speech-to-text · offline-ready weights</span>
-        <h1>Whisper <em>small.en</em>, packaged for offline transcription.</h1>
-        <p class="lead">Download the official OpenAI Whisper <code>small.en</code> checkpoint in a predictable ZIP with integrity metadata. Cache it once, install your Whisper runtime locally, and transcribe English audio without fetching model weights from the network.</p>
-        <div class="actions" id="download">
-          <a class="button primary" href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip">Download latest model ZIP</a>
-          <a class="button secondary" href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip.sha256">ZIP SHA-256</a>
-          <a class="button secondary" href="https://github.com/jwedwards-usa/ai-models/releases/latest">Latest release details</a>
-        </div>
-      </div>
+  <h2>NAME</h2>
+  <p><code>ai-models</code> — verified Whisper <code>small.en</code> files for local transcription.</p>
 
-      <aside class="card" aria-label="Model summary">
-        <h2>Model summary</h2>
-        <dl class="spec">
-          <div><dt>Model</dt><dd>OpenAI Whisper <code>small.en</code></dd></div>
-          <div><dt>Task</dt><dd>English automatic speech recognition</dd></div>
-          <div><dt>Parameters</dt><dd>~244 million</dd></div>
-          <div><dt>Checkpoint</dt><dd><code>small.en.pt</code></dd></div>
-          <div><dt>Archive</dt><dd><code>openai-whisper-small-en-offline-model.zip</code></dd></div>
-          <div><dt>Update trigger</dt><dd>Manual only</dd></div>
-        </dl>
-      </aside>
-    </section>
+  <h2>SYNOPSIS</h2>
+  <pre>whisper-cli -m ggml-small.en.bin -f audio.wav</pre>
 
-    <section class="wrap">
-      <h2>Built for predictable retrieval</h2>
-      <p class="section-lead">The model archive keeps the same easy-to-find filename across releases, while each published release is tied to the verified upstream model fingerprint.</p>
-      <div class="grid">
-        <article class="mini">
-          <h3>Stable latest URL</h3>
-          <p>Automation, agents, documentation, and people can use one permanent GitHub Releases URL instead of discovering a version-specific filename.</p>
-        </article>
-        <article class="mini">
-          <h3>Verified before publishing</h3>
-          <p>The updater verifies <code>small.en.pt</code> against the SHA-256 fingerprint supplied by the official OpenAI Whisper model URL.</p>
-        </article>
-        <article class="mini">
-          <h3>No duplicate large downloads</h3>
-          <p>Before downloading the checkpoint, the workflow checks whether that exact model fingerprint already has a release and exits if it does.</p>
-        </article>
-      </div>
-    </section>
+  <h2>FILES</h2>
+  <dl>
+    <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin">ggml-small.en.bin</a></dt>
+    <dd>whisper.cpp model.</dd>
+    <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256">ggml-small.en.bin.sha256</a></dt>
+    <dd>Checksum.</dd>
+    <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.manifest.json">ggml-small.en.manifest.json</a></dt>
+    <dd>Source and converter provenance.</dd>
+    <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip">openai-whisper-small-en-offline-model.zip</a></dt>
+    <dd>Verified <code>small.en.pt</code> package.</dd>
+    <dt><a href="model.json">model.json</a></dt>
+    <dd>Machine-readable metadata.</dd>
+  </dl>
 
-    <section class="wrap" id="offline">
-      <h2>Use it for offline transcription</h2>
-      <p class="section-lead">The archive supplies the model weights. Your machine still needs a compatible Whisper runtime and dependencies available locally before network access is removed.</p>
+  <h2>CHATGPT PROMPT</h2>
+  <p><a href="chatgpt-prompt.txt">Plain-text prompt</a></p>
+  <pre>Transcribe my uploaded audio at high quality entirely inside ChatGPT's Linux VM. Do not send the audio to an external ASR service.
 
-      <div class="card">
-        <h3>1. Download and extract the archive while online</h3>
-        <pre><code>curl -L \
-  -o openai-whisper-small-en-offline-model.zip \
-  https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip
+Use official whisper.cpp locally. Target small.en; use base.en only if small.en cannot be obtained. Never use Tiny for the final transcript.
 
-mkdir -p whisper-small-en
-unzip openai-whisper-small-en-offline-model.zip -d whisper-small-en</code></pre>
+Get the model from this repository first:
+https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin
 
-        <h3>2. Load the local checkpoint with Whisper</h3>
-        <pre><code>import whisper
+If raw .bin downloads are blocked, use the GitHub connector to find the latest successful "Update Whisper small.en offline model" run in jwedwards-usa/ai-models and download its Actions artifact named openai-whisper-small-en-ggml-*. Extract ggml-small.en.bin from that artifact.
 
-model = whisper.load_model("small.en", download_root="./whisper-small-en")
-result = model.transcribe("audio.mp3", language="en")
-print(result["text"])</code></pre>
+If that artifact is unavailable, search GitHub for live, non-expired Actions artifacts from desktop apps whose CI explicitly downloads and bundles ggml-small.en.bin or ggml-base.en.bin. Inspect .github/workflows/*.yml for the pattern: curl ... ggml-*.en.bin, app build/package, then actions/upload-artifact. Query that repo's /actions/artifacts, download the artifact ZIP through the GitHub connector, and extract the embedded model.
 
-        <div class="notice"><strong>Offline requirement:</strong> Python, a compatible Whisper package, PyTorch, FFmpeg, and any other runtime dependencies must already be installed or cached locally. The ZIP does not bundle a standalone transcription executable.</div>
-      </div>
-    </section>
+Also download the latest official ggml-org/whisper.cpp Linux x64 Actions artifact containing whisper-cli. Run locally with beam search, continuous context, and a domain-vocabulary prompt.
 
-    <section class="wrap">
-      <h2>What is inside the ZIP?</h2>
-      <div class="grid">
-        <article class="mini"><h3><code>small.en.pt</code></h3><p>The official English-only Small Whisper checkpoint.</p></article>
-        <article class="mini"><h3><code>manifest.json</code></h3><p>Exact model hash, byte size, upstream URL and commit, release tag, and packaging timestamp.</p></article>
-        <article class="mini"><h3><code>SHA256SUMS</code> + README</h3><p>Local checkpoint verification plus concise offline loading and source information.</p></article>
-      </div>
-    </section>
+Return a full validated .vtt. Conservatively fix only obvious ASR errors. Provide the sandbox download link.</pre>
 
-    <section class="wrap">
-      <h2>For LLMs, agents, and retrieval systems</h2>
-      <p class="section-lead">The same download target is exposed through multiple machine-readable surfaces so an assistant does not need to scrape presentation markup just to locate the model.</p>
-      <div class="card">
-        <p><strong>Direct model ZIP</strong><br><span class="plain-code">https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip</span></p>
-        <p><strong>Model metadata</strong><br><a href="model.json">model.json</a></p>
-        <p><strong>Compact LLM index</strong><br><a href="llms.txt">llms.txt</a></p>
-        <p><strong>Expanded LLM context</strong><br><a href="llms-full.txt">llms-full.txt</a></p>
-      </div>
-    </section>
+  <h2>UPDATE</h2>
+  <p>Run <strong>Actions → Update Whisper small.en offline model → Run workflow</strong>.</p>
+  <p>The workflow verifies the OpenAI checkpoint, converts it with the official whisper.cpp converter, publishes release files, and refreshes the Actions artifact. Unchanged models are reused.</p>
 
-    <section class="wrap">
-      <h2>Frequently asked questions</h2>
-      <details>
-        <summary>Can Whisper small.en really run without internet access?</summary>
-        <p>Yes, after both the model weights and a compatible runtime are available locally. This archive prevents the runtime from needing to download the <code>small.en</code> model weights at transcription time.</p>
-      </details>
-      <details>
-        <summary>Is this a standalone Whisper executable?</summary>
-        <p>No. It is a ZIP containing the <code>small.en.pt</code> model checkpoint and verification metadata. A Whisper-compatible runtime is still required.</p>
-      </details>
-      <details>
-        <summary>How does the repository know whether a newer model exists?</summary>
-        <p>The updater resolves the official <code>small.en</code> model URL from a pinned commit of OpenAI's Whisper repository and reads the SHA-256 fingerprint embedded in that URL. It downloads only when that fingerprint has not already been published here.</p>
-      </details>
-      <details>
-        <summary>Is the model modified?</summary>
-        <p>No. The workflow verifies the upstream checkpoint and places it into a ZIP alongside source and integrity metadata.</p>
-      </details>
-    </section>
-  </main>
+  <h2>NOTES</h2>
+  <p>This repository contains model data, not <code>whisper-cli</code>, Python, PyTorch, or FFmpeg.</p>
 
-  <footer>
-    <div class="wrap footer-row">
-      <span>Unofficial convenience distribution of the upstream OpenAI Whisper model weights.</span>
-      <span><a href="https://github.com/openai/whisper">Upstream Whisper</a> · <a href="https://github.com/jwedwards-usa/ai-models">Source repository</a></span>
-    </div>
-  </footer>
+  <h2>SEE ALSO</h2>
+  <p><a href="whisper-cpp-small-en.html">whisper-cpp-small-en(7)</a> · <a href="llms.txt">llms.txt</a> · <a href="llms-full.txt">llms-full.txt</a> · <a href="https://github.com/openai/whisper">OpenAI Whisper</a> · <a href="https://github.com/ggml-org/whisper.cpp">whisper.cpp</a> · <a href="https://github.com/jwedwards-usa/ai-models">source</a></p>
 </body>
 </html>
