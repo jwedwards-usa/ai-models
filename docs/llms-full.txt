@@ -6,56 +6,44 @@ Prompt: https://jwedwards-usa.github.io/ai-models/chatgpt-prompt.txt
 
 ## FILES
 
-whisper.cpp model:
-https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin
-
-GGML checksum:
-https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256
-
-GGML provenance:
-https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.manifest.json
-
-OpenAI Whisper/PyTorch ZIP:
-https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip
+Preferred whisper.cpp ZIP:
+https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip
 
 ZIP checksum:
-https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip.sha256
+https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip.sha256
+
+ZIP contents:
+- ggml-small.en.bin
+- ggml-small.en.bin.sha256
+- ggml-small.en.manifest.json
+
+Raw whisper.cpp model:
+https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin
+
+PyTorch ZIP:
+https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip
 
 Metadata:
 https://jwedwards-usa.github.io/ai-models/model.json
 
 ## USE
 
+    unzip ggml-small.en.zip
     whisper-cli -m ggml-small.en.bin -f audio.wav
 
-The repository contains model data only. Supply the runtime separately.
+Runtime not included.
 
 ## ACTIONS ARTIFACT
 
-Workflow: `Update Whisper small.en offline model`
+Workflow: `Update Whisper small.en`
 Artifact: `openai-whisper-small-en-ggml-<model-sha-prefix>`
-Contents:
-- `ggml-small.en.bin`
-- `ggml-small.en.bin.sha256`
-- `ggml-small.en.manifest.json`
 Retention: 90 days.
 
-Use this artifact when direct binary release download is unavailable.
+Use the Actions artifact if the release ZIP cannot be downloaded.
 
 ## UPDATE
 
-The workflow is manual-only.
-
-New model:
-1. Resolve OpenAI `small.en.pt` URL and SHA-256.
-2. Download and verify the checkpoint.
-3. Package the PyTorch ZIP.
-4. Convert with `ggml-org/whisper.cpp/models/convert-pt-to-ggml.py`.
-5. Publish release files and Actions artifact.
-
-Existing model:
-- Missing GGML: recover the verified checkpoint from the existing release ZIP and convert it.
-- GGML present: reuse release files and refresh the Actions artifact.
+The workflow is manual-only. It verifies the OpenAI checkpoint, converts missing GGML files with the official whisper.cpp converter, creates `ggml-small.en.zip`, publishes missing release assets, and refreshes the Actions artifact. Existing verified files are reused.
 
 ## SOURCE
 
