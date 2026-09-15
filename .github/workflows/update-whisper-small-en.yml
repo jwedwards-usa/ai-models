@@ -1,4 +1,4 @@
-name: Update Whisper small.en offline model
+name: Update Whisper small.en
 
 on:
   workflow_dispatch:
@@ -12,10 +12,12 @@ concurrency:
 
 env:
   MODEL_FILENAME: small.en.pt
-  ASSET_NAME: openai-whisper-small-en-offline-model.zip
+  PYTORCH_ZIP: openai-whisper-small-en-offline-model.zip
   GGML_FILENAME: ggml-small.en.bin
-  GGML_SHA_NAME: ggml-small.en.bin.sha256
-  GGML_MANIFEST_NAME: ggml-small.en.manifest.json
+  GGML_SHA: ggml-small.en.bin.sha256
+  GGML_MANIFEST: ggml-small.en.manifest.json
+  GGML_ZIP: ggml-small.en.zip
+  GGML_ZIP_SHA: ggml-small.en.zip.sha256
 
 jobs:
   publish:
@@ -30,99 +32,77 @@ jobs:
         run: |
           set -euo pipefail
 
-          upstream_commit="$(
-            git ls-remote https://github.com/openai/whisper.git refs/heads/main |
-              awk '{print $1}'
-          )"
-          [[ "${upstream_commit}" =~ ^[0-9a-f]{40}$ ]] || {
-            echo "::error::Cannot resolve openai/whisper main."
-            exit 1
-          }
+          commit="$(git ls-remote https://github.com/openai/whisper.git refs/heads/main | awk '{print $1}')"
+          [[ "${commit}" =~ ^[0-9a-f]{40}$ ]] || exit 1
 
-          curl --fail --silent --show-error --location \
-            --retry 4 --retry-all-errors \
-            --output upstream-whisper-init.py \
-            "https://raw.githubusercontent.com/openai/whisper/${upstream_commit}/whisper/__init__.py"
+          curl -fsSL --retry 4 --retry-all-errors \
+            -o upstream-whisper-init.py \
+            "https://raw.githubusercontent.com/openai/whisper/${commit}/whisper/__init__.py"
 
           model_url="$(python3 - <<'PY'
           import ast
-
           tree = ast.parse(open("upstream-whisper-init.py", encoding="utf-8").read())
           for node in tree.body:
-              if not isinstance(node, ast.Assign):
-                  continue
-              if any(isinstance(t, ast.Name) and t.id == "_MODELS" for t in node.targets):
-                  models = ast.literal_eval(node.value)
-                  print(models["small.en"])
+              if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "_MODELS" for t in node.targets):
+                  print(ast.literal_eval(node.value)["small.en"])
                   break
           else:
-              raise SystemExit("small.en not found in _MODELS")
+              raise SystemExit("small.en not found")
           PY
           )"
 
           expected_sha="$(MODEL_URL="${model_url}" python3 - <<'PY'
           import os, re
-
           match = re.search(r"/([0-9a-fA-F]{64})/small\.en\.pt(?:\?.*)?$", os.environ["MODEL_URL"])
           if not match:
-              raise SystemExit("small.en URL has no SHA-256 fingerprint")
+              raise SystemExit("small.en URL has no SHA-256")
           print(match.group(1).lower())
           PY
           )"
 
           short_sha="${expected_sha:0:12}"
-          release_tag="whisper-small-en-${short_sha}"
+          tag="whisper-small-en-${short_sha}"
 
-          echo "upstream_commit=${upstream_commit}" >> "${GITHUB_OUTPUT}"
+          echo "commit=${commit}" >> "${GITHUB_OUTPUT}"
           echo "model_url=${model_url}" >> "${GITHUB_OUTPUT}"
           echo "expected_sha=${expected_sha}" >> "${GITHUB_OUTPUT}"
           echo "short_sha=${short_sha}" >> "${GITHUB_OUTPUT}"
-          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
-
-          printf '### Model\n- SHA-256: `%s`\n- Release: `%s`\n' \
-            "${expected_sha}" "${release_tag}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
 
       - name: Check release
         id: state
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
+          TAG: ${{ steps.upstream.outputs.tag }}
         run: |
           set -euo pipefail
 
-          release_exists=false
-          ggml_complete=false
+          release=false
+          ggml=false
+          zip=false
 
-          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            release_exists=true
-            mapfile -t assets < <(
-              gh release view "${RELEASE_TAG}" \
-                --repo "${GITHUB_REPOSITORY}" \
-                --json assets \
-                --jq '.assets[].name'
-            )
+          if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            release=true
+            mapfile -t assets < <(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name')
 
-            has_asset() {
-              printf '%s\n' "${assets[@]}" |
-                grep --fixed-strings --line-regexp --quiet -- "$1"
-            }
+            has() { printf '%s\n' "${assets[@]}" | grep -Fxq -- "$1"; }
 
-            if has_asset "${GGML_FILENAME}" && \
-               has_asset "${GGML_SHA_NAME}" && \
-               has_asset "${GGML_MANIFEST_NAME}"; then
-              ggml_complete=true
+            if has "${GGML_FILENAME}" && has "${GGML_SHA}" && has "${GGML_MANIFEST}"; then
+              ggml=true
+            fi
+            if has "${GGML_ZIP}" && has "${GGML_ZIP_SHA}"; then
+              zip=true
             fi
           fi
 
-          [[ "${release_exists}" == true ]] && new_release=false || new_release=true
-          [[ "${ggml_complete}" == true ]] && needs_conversion=false || needs_conversion=true
+          [[ "${release}" == true ]] && new_release=false || new_release=true
+          [[ "${ggml}" == true ]] && needs_conversion=false || needs_conversion=true
+          [[ "${zip}" == true ]] && needs_zip=false || needs_zip=true
 
           echo "new_release=${new_release}" >> "${GITHUB_OUTPUT}"
           echo "needs_conversion=${needs_conversion}" >> "${GITHUB_OUTPUT}"
-
-          printf '\n### State\n- Release: `%s`\n- GGML: `%s`\n' \
-            "${release_exists}" "${ggml_complete}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "needs_zip=${needs_zip}" >> "${GITHUB_OUTPUT}"
 
       - name: Download checkpoint
         if: steps.state.outputs.new_release == 'true'
@@ -132,30 +112,22 @@ jobs:
           EXPECTED_SHA: ${{ steps.upstream.outputs.expected_sha }}
         run: |
           set -euo pipefail
-          curl --fail --show-error --location \
-            --retry 5 --retry-all-errors \
-            --output "${MODEL_FILENAME}" \
-            "${MODEL_URL}"
-          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" |
-            sha256sum --check --strict
+          curl -fL --retry 5 --retry-all-errors -o "${MODEL_FILENAME}" "${MODEL_URL}"
+          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" | sha256sum -c --strict
 
       - name: Recover checkpoint
         if: steps.state.outputs.new_release == 'false' && steps.state.outputs.needs_conversion == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
+          TAG: ${{ steps.upstream.outputs.tag }}
           EXPECTED_SHA: ${{ steps.upstream.outputs.expected_sha }}
         run: |
           set -euo pipefail
-          mkdir -p existing-release
-          gh release download "${RELEASE_TAG}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --pattern "${ASSET_NAME}" \
-            --dir existing-release
-          unzip -p "existing-release/${ASSET_NAME}" "${MODEL_FILENAME}" > "${MODEL_FILENAME}"
-          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" |
-            sha256sum --check --strict
+          mkdir existing-release
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" --pattern "${PYTORCH_ZIP}" --dir existing-release
+          unzip -p "existing-release/${PYTORCH_ZIP}" "${MODEL_FILENAME}" > "${MODEL_FILENAME}"
+          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" | sha256sum -c --strict
 
       - name: Resolve converter
         if: steps.state.outputs.needs_conversion == 'true'
@@ -163,140 +135,110 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          commit="$(
-            git ls-remote https://github.com/ggml-org/whisper.cpp.git refs/heads/master |
-              awk '{print $1}'
-          )"
-          [[ "${commit}" =~ ^[0-9a-f]{40}$ ]] || {
-            echo "::error::Cannot resolve ggml-org/whisper.cpp master."
-            exit 1
-          }
-
-          url="https://raw.githubusercontent.com/ggml-org/whisper.cpp/${commit}/models/convert-pt-to-ggml.py"
-          echo "whisper_cpp_commit=${commit}" >> "${GITHUB_OUTPUT}"
-          echo "converter_url=${url}" >> "${GITHUB_OUTPUT}"
+          commit="$(git ls-remote https://github.com/ggml-org/whisper.cpp.git refs/heads/master | awk '{print $1}')"
+          [[ "${commit}" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          echo "commit=${commit}" >> "${GITHUB_OUTPUT}"
+          echo "url=https://raw.githubusercontent.com/ggml-org/whisper.cpp/${commit}/models/convert-pt-to-ggml.py" >> "${GITHUB_OUTPUT}"
 
       - name: Convert GGML
         if: steps.state.outputs.needs_conversion == 'true'
         shell: bash
         env:
           EXPECTED_SHA: ${{ steps.upstream.outputs.expected_sha }}
-          UPSTREAM_COMMIT: ${{ steps.upstream.outputs.upstream_commit }}
-          WHISPER_CPP_COMMIT: ${{ steps.whispercpp.outputs.whisper_cpp_commit }}
-          CONVERTER_URL: ${{ steps.whispercpp.outputs.converter_url }}
+          OPENAI_COMMIT: ${{ steps.upstream.outputs.commit }}
+          WHISPER_CPP_COMMIT: ${{ steps.whispercpp.outputs.commit }}
+          CONVERTER_URL: ${{ steps.whispercpp.outputs.url }}
         run: |
           set -euo pipefail
-          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" |
-            sha256sum --check --strict
+          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" | sha256sum -c --strict
 
           git init upstream-whisper
           git -C upstream-whisper remote add origin https://github.com/openai/whisper.git
-          git -C upstream-whisper fetch --depth=1 origin "${UPSTREAM_COMMIT}"
+          git -C upstream-whisper fetch --depth=1 origin "${OPENAI_COMMIT}"
           git -C upstream-whisper checkout --detach FETCH_HEAD
 
-          curl --fail --silent --show-error --location \
-            --retry 4 --retry-all-errors \
-            --output convert-pt-to-ggml.py \
-            "${CONVERTER_URL}"
-
+          curl -fsSL --retry 4 --retry-all-errors -o convert-pt-to-ggml.py "${CONVERTER_URL}"
           python3 -m pip install --disable-pip-version-check --upgrade numpy
-          python3 -m pip install --disable-pip-version-check \
-            --index-url https://download.pytorch.org/whl/cpu torch
+          python3 -m pip install --disable-pip-version-check --index-url https://download.pytorch.org/whl/cpu torch
 
-          mkdir -p ggml-out
+          mkdir ggml-out
           python3 convert-pt-to-ggml.py "${MODEL_FILENAME}" upstream-whisper ggml-out
           mv ggml-out/ggml-model.bin "${GGML_FILENAME}"
           test -s "${GGML_FILENAME}"
 
-          ggml_sha="$(sha256sum "${GGML_FILENAME}" | awk '{print $1}')"
-          ggml_bytes="$(stat --format='%s' "${GGML_FILENAME}")"
-          converted_at="$(date --utc +'%Y-%m-%dT%H:%M:%SZ')"
-          printf '%s  %s\n' "${ggml_sha}" "${GGML_FILENAME}" > "${GGML_SHA_NAME}"
+          output_sha="$(sha256sum "${GGML_FILENAME}" | awk '{print $1}')"
+          output_bytes="$(stat -c '%s' "${GGML_FILENAME}")"
+          printf '%s  %s\n' "${output_sha}" "${GGML_FILENAME}" > "${GGML_SHA}"
 
           jq -n \
-            --arg source_file "${MODEL_FILENAME}" \
             --arg source_sha256 "${EXPECTED_SHA}" \
-            --arg output_file "${GGML_FILENAME}" \
-            --arg output_sha256 "${ggml_sha}" \
-            --arg upstream_commit "${UPSTREAM_COMMIT}" \
-            --arg converter_commit "${WHISPER_CPP_COMMIT}" \
-            --arg converted_at "${converted_at}" \
-            --argjson output_bytes "${ggml_bytes}" \
-            '{
-              schema_version: 1,
-              model: "openai/whisper small.en",
-              source_file: $source_file,
-              source_sha256: $source_sha256,
-              output_file: $output_file,
-              output_sha256: $output_sha256,
-              output_bytes: $output_bytes,
-              upstream: "https://github.com/openai/whisper",
-              upstream_commit: $upstream_commit,
-              converter: "https://github.com/ggml-org/whisper.cpp",
-              converter_commit: $converter_commit,
-              converter_script: "models/convert-pt-to-ggml.py",
-              converted_at_utc: $converted_at
-            }' > "${GGML_MANIFEST_NAME}"
+            --arg output_sha256 "${output_sha}" \
+            --arg openai_commit "${OPENAI_COMMIT}" \
+            --arg whisper_cpp_commit "${WHISPER_CPP_COMMIT}" \
+            --argjson output_bytes "${output_bytes}" \
+            '{schema_version:1, model:"openai/whisper small.en", source_file:"small.en.pt", source_sha256:$source_sha256, output_file:"ggml-small.en.bin", output_sha256:$output_sha256, output_bytes:$output_bytes, upstream:"https://github.com/openai/whisper", upstream_commit:$openai_commit, converter:"https://github.com/ggml-org/whisper.cpp", converter_commit:$whisper_cpp_commit, converter_script:"models/convert-pt-to-ggml.py"}' \
+            > "${GGML_MANIFEST}"
 
-          sha256sum --check --strict "${GGML_SHA_NAME}"
+          sha256sum -c --strict "${GGML_SHA}"
+
+      - name: Fetch GGML
+        if: steps.state.outputs.needs_conversion == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.upstream.outputs.tag }}
+        run: |
+          set -euo pipefail
+          for asset in "${GGML_FILENAME}" "${GGML_SHA}" "${GGML_MANIFEST}"; do
+            gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" --pattern "${asset}"
+          done
+          sha256sum -c --strict "${GGML_SHA}"
+
+      - name: Build GGML ZIP
+        if: steps.state.outputs.needs_zip == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -0 "${GGML_ZIP}" "${GGML_FILENAME}" "${GGML_SHA}" "${GGML_MANIFEST}"
+          sha256sum "${GGML_ZIP}" > "${GGML_ZIP_SHA}"
 
       - name: Build PyTorch ZIP
         if: steps.state.outputs.new_release == 'true'
         shell: bash
         env:
           EXPECTED_SHA: ${{ steps.upstream.outputs.expected_sha }}
-          UPSTREAM_COMMIT: ${{ steps.upstream.outputs.upstream_commit }}
+          OPENAI_COMMIT: ${{ steps.upstream.outputs.commit }}
           MODEL_URL: ${{ steps.upstream.outputs.model_url }}
-          RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
+          TAG: ${{ steps.upstream.outputs.tag }}
         run: |
           set -euo pipefail
-          model_bytes="$(stat --format='%s' "${MODEL_FILENAME}")"
-          packaged_at="$(date --utc +'%Y-%m-%dT%H:%M:%SZ')"
+          bytes="$(stat -c '%s' "${MODEL_FILENAME}")"
 
           jq -n \
             --arg file "${MODEL_FILENAME}" \
             --arg sha256 "${EXPECTED_SHA}" \
             --arg url "${MODEL_URL}" \
-            --arg upstream_commit "${UPSTREAM_COMMIT}" \
-            --arg release_tag "${RELEASE_TAG}" \
-            --arg packaged_at "${packaged_at}" \
-            --argjson bytes "${model_bytes}" \
-            '{
-              schema_version: 1,
-              model: "openai/whisper small.en",
-              file: $file,
-              sha256: $sha256,
-              bytes: $bytes,
-              upstream_url: $url,
-              upstream_commit: $upstream_commit,
-              release_tag: $release_tag,
-              packaged_at_utc: $packaged_at
-            }' > manifest.json
+            --arg commit "${OPENAI_COMMIT}" \
+            --arg tag "${TAG}" \
+            --argjson bytes "${bytes}" \
+            '{schema_version:1, model:"openai/whisper small.en", file:$file, sha256:$sha256, bytes:$bytes, upstream_url:$url, upstream_commit:$commit, release_tag:$tag}' \
+            > manifest.json
 
           printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" > SHA256SUMS
+          printf 'OpenAI Whisper small.en\n\nfile: %s\nsha256: %s\nsource: https://github.com/openai/whisper\ncommit: %s\n' \
+            "${MODEL_FILENAME}" "${EXPECTED_SHA}" "${OPENAI_COMMIT}" > MODEL-README.txt
 
-          cat > MODEL-README.txt <<EOF
-          OpenAI Whisper small.en
-
-          file: ${MODEL_FILENAME}
-          sha256: ${EXPECTED_SHA}
-          source: https://github.com/openai/whisper
-          commit: ${UPSTREAM_COMMIT}
-
-          Model data only. Runtime not included.
-          EOF
-
-          zip -1 "${ASSET_NAME}" \
-            "${MODEL_FILENAME}" manifest.json SHA256SUMS MODEL-README.txt
-          sha256sum "${ASSET_NAME}" > "${ASSET_NAME}.sha256"
+          zip -1 "${PYTORCH_ZIP}" "${MODEL_FILENAME}" manifest.json SHA256SUMS MODEL-README.txt
+          sha256sum "${PYTORCH_ZIP}" > "${PYTORCH_ZIP}.sha256"
 
           cat > release-notes.md <<EOF
           OpenAI Whisper \`small.en\`
 
           - SHA-256: \`${EXPECTED_SHA}\`
-          - PyTorch: \`${ASSET_NAME}\`
-          - whisper.cpp: \`${GGML_FILENAME}\`
-          - OpenAI commit: \`${UPSTREAM_COMMIT}\`
+          - whisper.cpp ZIP: \`${GGML_ZIP}\`
+          - whisper.cpp raw: \`${GGML_FILENAME}\`
+          - PyTorch ZIP: \`${PYTORCH_ZIP}\`
+          - OpenAI commit: \`${OPENAI_COMMIT}\`
           EOF
 
       - name: Publish release
@@ -304,49 +246,43 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
+          TAG: ${{ steps.upstream.outputs.tag }}
           SHORT_SHA: ${{ steps.upstream.outputs.short_sha }}
         run: |
           set -euo pipefail
-          gh release create "${RELEASE_TAG}" \
-            "${ASSET_NAME}" \
-            "${ASSET_NAME}.sha256" \
-            "${GGML_FILENAME}" \
-            "${GGML_SHA_NAME}" \
-            "${GGML_MANIFEST_NAME}" \
+          gh release create "${TAG}" \
+            "${PYTORCH_ZIP}" "${PYTORCH_ZIP}.sha256" \
+            "${GGML_FILENAME}" "${GGML_SHA}" "${GGML_MANIFEST}" \
+            "${GGML_ZIP}" "${GGML_ZIP_SHA}" \
             --repo "${GITHUB_REPOSITORY}" \
             --target "${GITHUB_SHA}" \
             --title "Whisper small.en (${SHORT_SHA})" \
             --notes-file release-notes.md \
             --latest
 
-      - name: Backfill GGML
+      - name: Backfill GGML and ZIP
         if: steps.state.outputs.new_release == 'false' && steps.state.outputs.needs_conversion == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
+          TAG: ${{ steps.upstream.outputs.tag }}
         run: |
           set -euo pipefail
-          gh release upload "${RELEASE_TAG}" \
-            "${GGML_FILENAME}" \
-            "${GGML_SHA_NAME}" \
-            "${GGML_MANIFEST_NAME}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --clobber
+          gh release upload "${TAG}" \
+            "${GGML_FILENAME}" "${GGML_SHA}" "${GGML_MANIFEST}" \
+            "${GGML_ZIP}" "${GGML_ZIP_SHA}" \
+            --repo "${GITHUB_REPOSITORY}" --clobber
 
-      - name: Fetch GGML
-        if: steps.state.outputs.needs_conversion == 'false'
+      - name: Backfill ZIP
+        if: steps.state.outputs.new_release == 'false' && steps.state.outputs.needs_conversion == 'false' && steps.state.outputs.needs_zip == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
+          TAG: ${{ steps.upstream.outputs.tag }}
         run: |
           set -euo pipefail
-          gh release download "${RELEASE_TAG}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --pattern "ggml-small.en*"
-          sha256sum --check --strict "${GGML_SHA_NAME}"
+          gh release upload "${TAG}" "${GGML_ZIP}" "${GGML_ZIP_SHA}" \
+            --repo "${GITHUB_REPOSITORY}" --clobber
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v7
@@ -366,9 +302,9 @@ jobs:
           SHORT_SHA: ${{ steps.upstream.outputs.short_sha }}
         run: |
           cat >> "${GITHUB_STEP_SUMMARY}" <<EOF
-
           ### Files
+          - https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${GGML_ZIP}
           - https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${GGML_FILENAME}
-          - https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${ASSET_NAME}
+          - https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${PYTORCH_ZIP}
           - \`openai-whisper-small-en-ggml-${SHORT_SHA}\`
           EOF
