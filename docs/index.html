@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ai-models(7) — Whisper small.en</title>
-  <meta name="description" content="Verified Whisper small.en files for whisper.cpp and OpenAI Whisper, with checksums, provenance, and a ChatGPT local-transcription prompt.">
+  <meta name="description" content="Whisper small.en files for whisper.cpp and OpenAI Whisper, with checksums, provenance, and a ChatGPT local-transcription prompt.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="https://jwedwards-usa.github.io/ai-models/">
   <link rel="alternate" type="application/json" href="model.json">
@@ -26,17 +26,22 @@
   <h1>AI-MODELS(7)</h1>
 
   <h2>NAME</h2>
-  <p><code>ai-models</code> — verified Whisper <code>small.en</code> files for local transcription.</p>
+  <p><code>ai-models</code> — Whisper <code>small.en</code> files for local transcription.</p>
 
   <h2>SYNOPSIS</h2>
-  <pre>whisper-cli -m ggml-small.en.bin -f audio.wav</pre>
+  <pre>unzip ggml-small.en.zip
+whisper-cli -m ggml-small.en.bin -f audio.wav</pre>
 
   <h2>FILES</h2>
   <dl>
+    <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip">ggml-small.en.zip</a></dt>
+    <dd>Preferred download. Contains <code>ggml-small.en.bin</code>, its checksum, and provenance manifest.</dd>
+    <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip.sha256">ggml-small.en.zip.sha256</a></dt>
+    <dd>ZIP checksum.</dd>
     <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin">ggml-small.en.bin</a></dt>
-    <dd>whisper.cpp model.</dd>
+    <dd>Raw whisper.cpp model.</dd>
     <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256">ggml-small.en.bin.sha256</a></dt>
-    <dd>Checksum.</dd>
+    <dd>Model checksum.</dd>
     <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.manifest.json">ggml-small.en.manifest.json</a></dt>
     <dd>Source and converter provenance.</dd>
     <dt><a href="https://github.com/jwedwards-usa/ai-models/releases/latest/download/openai-whisper-small-en-offline-model.zip">openai-whisper-small-en-offline-model.zip</a></dt>
@@ -47,24 +52,20 @@
 
   <h2>CHATGPT PROMPT</h2>
   <p><a href="chatgpt-prompt.txt">Plain-text prompt</a></p>
-  <pre>Transcribe my uploaded audio at high quality entirely inside ChatGPT's Linux VM. Do not send the audio to an external ASR service.
+  <pre>Transcribe my uploaded audio entirely inside ChatGPT's Linux VM. Do not send the audio to an external ASR service.
 
-Use official whisper.cpp locally. Target small.en; use base.en only if small.en cannot be obtained. Never use Tiny for the final transcript.
+Use official whisper.cpp with small.en. Download and extract:
+https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip
 
-Get the model from this repository first:
-https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin
+If that download is blocked, use the GitHub connector to get the latest successful "Update Whisper small.en" Actions artifact named openai-whisper-small-en-ggml-* from jwedwards-usa/ai-models and extract ggml-small.en.bin.
 
-If raw .bin downloads are blocked, use the GitHub connector to find the latest successful "Update Whisper small.en offline model" run in jwedwards-usa/ai-models and download its Actions artifact named openai-whisper-small-en-ggml-*. Extract ggml-small.en.bin from that artifact.
+Also get the latest official ggml-org/whisper.cpp Linux x64 Actions artifact containing whisper-cli. Run locally with beam search, continuous context, and a domain-vocabulary prompt.
 
-If that artifact is unavailable, search GitHub for live, non-expired Actions artifacts from desktop apps whose CI explicitly downloads and bundles ggml-small.en.bin or ggml-base.en.bin. Inspect .github/workflows/*.yml for the pattern: curl ... ggml-*.en.bin, app build/package, then actions/upload-artifact. Query that repo's /actions/artifacts, download the artifact ZIP through the GitHub connector, and extract the embedded model.
-
-Also download the latest official ggml-org/whisper.cpp Linux x64 Actions artifact containing whisper-cli. Run locally with beam search, continuous context, and a domain-vocabulary prompt.
-
-Return a full validated .vtt. Conservatively fix only obvious ASR errors. Provide the sandbox download link.</pre>
+Return a validated .vtt. Fix only obvious ASR errors. Provide the sandbox download link.</pre>
 
   <h2>UPDATE</h2>
-  <p>Run <strong>Actions → Update Whisper small.en offline model → Run workflow</strong>.</p>
-  <p>The workflow verifies the OpenAI checkpoint, converts it with the official whisper.cpp converter, publishes release files, and refreshes the Actions artifact. Unchanged models are reused.</p>
+  <p>Run <strong>Actions → Update Whisper small.en → Run workflow</strong>.</p>
+  <p>The workflow verifies the OpenAI checkpoint, converts it when needed, publishes the raw GGML file and ZIP, and refreshes the Actions artifact. Unchanged models are reused.</p>
 
   <h2>NOTES</h2>
   <p>This repository contains model data, not <code>whisper-cli</code>, Python, PyTorch, or FFmpeg.</p>
