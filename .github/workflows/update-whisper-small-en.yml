@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: whisper-small-en-model-publisher
+  group: whisper-small-en
   cancel-in-progress: false
 
 env:
@@ -19,13 +19,12 @@ env:
 
 jobs:
   publish:
-    name: Check, convert, and publish latest model
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Resolve current upstream model
+      - name: Resolve model
         id: upstream
         shell: bash
         run: |
@@ -35,51 +34,38 @@ jobs:
             git ls-remote https://github.com/openai/whisper.git refs/heads/main |
               awk '{print $1}'
           )"
-
-          if [[ ! "${upstream_commit}" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Could not resolve OpenAI Whisper's main commit."
+          [[ "${upstream_commit}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::Cannot resolve openai/whisper main."
             exit 1
-          fi
+          }
 
-          init_url="https://raw.githubusercontent.com/openai/whisper/${upstream_commit}/whisper/__init__.py"
           curl --fail --silent --show-error --location \
             --retry 4 --retry-all-errors \
             --output upstream-whisper-init.py \
-            "${init_url}"
+            "https://raw.githubusercontent.com/openai/whisper/${upstream_commit}/whisper/__init__.py"
 
-          model_url="$(
-            python3 - <<'PY'
+          model_url="$(python3 - <<'PY'
           import ast
 
-          with open("upstream-whisper-init.py", "r", encoding="utf-8") as handle:
-              tree = ast.parse(handle.read())
-
-          models = None
+          tree = ast.parse(open("upstream-whisper-init.py", encoding="utf-8").read())
           for node in tree.body:
               if not isinstance(node, ast.Assign):
                   continue
-              if any(isinstance(target, ast.Name) and target.id == "_MODELS" for target in node.targets):
+              if any(isinstance(t, ast.Name) and t.id == "_MODELS" for t in node.targets):
                   models = ast.literal_eval(node.value)
+                  print(models["small.en"])
                   break
-
-          if not isinstance(models, dict) or "small.en" not in models:
-              raise SystemExit("Could not resolve small.en from upstream Whisper _MODELS.")
-
-          print(models["small.en"])
+          else:
+              raise SystemExit("small.en not found in _MODELS")
           PY
           )"
 
-          expected_sha="$(
-            MODEL_URL="${model_url}" python3 - <<'PY'
-          import os
-          import re
+          expected_sha="$(MODEL_URL="${model_url}" python3 - <<'PY'
+          import os, re
 
-          url = os.environ["MODEL_URL"]
-          match = re.search(r"/([0-9a-fA-F]{64})/small\.en\.pt(?:\?.*)?$", url)
+          match = re.search(r"/([0-9a-fA-F]{64})/small\.en\.pt(?:\?.*)?$", os.environ["MODEL_URL"])
           if not match:
-              raise SystemExit(
-                  "The upstream small.en URL no longer contains the expected SHA-256 fingerprint."
-              )
+              raise SystemExit("small.en URL has no SHA-256 fingerprint")
           print(match.group(1).lower())
           PY
           )"
@@ -93,15 +79,10 @@ jobs:
           echo "short_sha=${short_sha}" >> "${GITHUB_OUTPUT}"
           echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
 
-          {
-            echo "### Upstream check"
-            echo
-            echo "- OpenAI Whisper commit: \`${upstream_commit}\`"
-            echo "- Model fingerprint: \`${expected_sha}\`"
-            echo "- Candidate release: \`${release_tag}\`"
-          } >> "${GITHUB_STEP_SUMMARY}"
+          printf '### Model\n- SHA-256: `%s`\n- Release: `%s`\n' \
+            "${expected_sha}" "${release_tag}" >> "${GITHUB_STEP_SUMMARY}"
 
-      - name: Inspect published model and GGML assets
+      - name: Check release
         id: state
         shell: bash
         env:
@@ -123,8 +104,8 @@ jobs:
             )
 
             has_asset() {
-              local wanted="$1"
-              printf '%s\n' "${assets[@]}" | grep --fixed-strings --line-regexp --quiet -- "${wanted}"
+              printf '%s\n' "${assets[@]}" |
+                grep --fixed-strings --line-regexp --quiet -- "$1"
             }
 
             if has_asset "${GGML_FILENAME}" && \
@@ -134,35 +115,16 @@ jobs:
             fi
           fi
 
-          if [[ "${release_exists}" == "true" ]]; then
-            new_release=false
-          else
-            new_release=true
-          fi
+          [[ "${release_exists}" == true ]] && new_release=false || new_release=true
+          [[ "${ggml_complete}" == true ]] && needs_conversion=false || needs_conversion=true
 
-          if [[ "${ggml_complete}" == "true" ]]; then
-            needs_conversion=false
-          else
-            needs_conversion=true
-          fi
-
-          echo "release_exists=${release_exists}" >> "${GITHUB_OUTPUT}"
           echo "new_release=${new_release}" >> "${GITHUB_OUTPUT}"
-          echo "ggml_complete=${ggml_complete}" >> "${GITHUB_OUTPUT}"
           echo "needs_conversion=${needs_conversion}" >> "${GITHUB_OUTPUT}"
 
-          {
-            echo
-            echo "### Publication state"
-            echo
-            echo "- PyTorch release exists: \`${release_exists}\`"
-            echo "- Complete GGML release assets exist: \`${ggml_complete}\`"
-            if [[ "${new_release}" == "false" ]]; then
-              echo "- The upstream \`small.en.pt\` will not be downloaded again."
-            fi
-          } >> "${GITHUB_STEP_SUMMARY}"
+          printf '\n### State\n- Release: `%s`\n- GGML: `%s`\n' \
+            "${release_exists}" "${ggml_complete}" >> "${GITHUB_STEP_SUMMARY}"
 
-      - name: Download and verify new upstream PyTorch model
+      - name: Download checkpoint
         if: steps.state.outputs.new_release == 'true'
         shell: bash
         env:
@@ -170,15 +132,14 @@ jobs:
           EXPECTED_SHA: ${{ steps.upstream.outputs.expected_sha }}
         run: |
           set -euo pipefail
-
           curl --fail --show-error --location \
             --retry 5 --retry-all-errors \
             --output "${MODEL_FILENAME}" \
             "${MODEL_URL}"
+          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" |
+            sha256sum --check --strict
 
-          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" | sha256sum --check --strict
-
-      - name: Recover verified PyTorch model from existing release for GGML backfill
+      - name: Recover checkpoint
         if: steps.state.outputs.new_release == 'false' && steps.state.outputs.needs_conversion == 'true'
         shell: bash
         env:
@@ -187,46 +148,35 @@ jobs:
           EXPECTED_SHA: ${{ steps.upstream.outputs.expected_sha }}
         run: |
           set -euo pipefail
-
           mkdir -p existing-release
           gh release download "${RELEASE_TAG}" \
             --repo "${GITHUB_REPOSITORY}" \
             --pattern "${ASSET_NAME}" \
             --dir existing-release
-
           unzip -p "existing-release/${ASSET_NAME}" "${MODEL_FILENAME}" > "${MODEL_FILENAME}"
-          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" | sha256sum --check --strict
+          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" |
+            sha256sum --check --strict
 
-      - name: Resolve whisper.cpp converter
+      - name: Resolve converter
         if: steps.state.outputs.needs_conversion == 'true'
         id: whispercpp
         shell: bash
         run: |
           set -euo pipefail
-
-          whisper_cpp_commit="$(
+          commit="$(
             git ls-remote https://github.com/ggml-org/whisper.cpp.git refs/heads/master |
               awk '{print $1}'
           )"
-
-          if [[ ! "${whisper_cpp_commit}" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Could not resolve ggml-org/whisper.cpp master commit."
+          [[ "${commit}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::Cannot resolve ggml-org/whisper.cpp master."
             exit 1
-          fi
+          }
 
-          converter_url="https://raw.githubusercontent.com/ggml-org/whisper.cpp/${whisper_cpp_commit}/models/convert-pt-to-ggml.py"
-          echo "whisper_cpp_commit=${whisper_cpp_commit}" >> "${GITHUB_OUTPUT}"
-          echo "converter_url=${converter_url}" >> "${GITHUB_OUTPUT}"
+          url="https://raw.githubusercontent.com/ggml-org/whisper.cpp/${commit}/models/convert-pt-to-ggml.py"
+          echo "whisper_cpp_commit=${commit}" >> "${GITHUB_OUTPUT}"
+          echo "converter_url=${url}" >> "${GITHUB_OUTPUT}"
 
-          {
-            echo
-            echo "### whisper.cpp conversion"
-            echo
-            echo "- whisper.cpp commit: \`${whisper_cpp_commit}\`"
-            echo "- Converter: \`models/convert-pt-to-ggml.py\`"
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-      - name: Convert verified checkpoint to whisper.cpp GGML
+      - name: Convert GGML
         if: steps.state.outputs.needs_conversion == 'true'
         shell: bash
         env:
@@ -236,8 +186,8 @@ jobs:
           CONVERTER_URL: ${{ steps.whispercpp.outputs.converter_url }}
         run: |
           set -euo pipefail
-
-          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" | sha256sum --check --strict
+          printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" |
+            sha256sum --check --strict
 
           git init upstream-whisper
           git -C upstream-whisper remote add origin https://github.com/openai/whisper.git
@@ -251,58 +201,46 @@ jobs:
 
           python3 -m pip install --disable-pip-version-check --upgrade numpy
           python3 -m pip install --disable-pip-version-check \
-            --index-url https://download.pytorch.org/whl/cpu \
-            torch
+            --index-url https://download.pytorch.org/whl/cpu torch
 
           mkdir -p ggml-out
           python3 convert-pt-to-ggml.py "${MODEL_FILENAME}" upstream-whisper ggml-out
           mv ggml-out/ggml-model.bin "${GGML_FILENAME}"
-
           test -s "${GGML_FILENAME}"
+
           ggml_sha="$(sha256sum "${GGML_FILENAME}" | awk '{print $1}')"
           ggml_bytes="$(stat --format='%s' "${GGML_FILENAME}")"
           converted_at="$(date --utc +'%Y-%m-%dT%H:%M:%SZ')"
-
           printf '%s  %s\n' "${ggml_sha}" "${GGML_FILENAME}" > "${GGML_SHA_NAME}"
 
           jq -n \
-            --arg schema_version "1" \
-            --arg model "openai/whisper small.en" \
-            --arg source_filename "${MODEL_FILENAME}" \
+            --arg source_file "${MODEL_FILENAME}" \
             --arg source_sha256 "${EXPECTED_SHA}" \
-            --arg output_filename "${GGML_FILENAME}" \
+            --arg output_file "${GGML_FILENAME}" \
             --arg output_sha256 "${ggml_sha}" \
-            --arg upstream_whisper_commit "${UPSTREAM_COMMIT}" \
-            --arg whisper_cpp_commit "${WHISPER_CPP_COMMIT}" \
-            --arg converter_url "${CONVERTER_URL}" \
+            --arg upstream_commit "${UPSTREAM_COMMIT}" \
+            --arg converter_commit "${WHISPER_CPP_COMMIT}" \
             --arg converted_at "${converted_at}" \
             --argjson output_bytes "${ggml_bytes}" \
             '{
-              schema_version: ($schema_version | tonumber),
-              model: $model,
-              language: "English",
-              task: "automatic speech recognition / transcription",
-              source_format: "OpenAI Whisper PyTorch checkpoint (.pt)",
-              source_filename: $source_filename,
+              schema_version: 1,
+              model: "openai/whisper small.en",
+              source_file: $source_file,
               source_sha256: $source_sha256,
-              output_format: "whisper.cpp GGML",
-              output_filename: $output_filename,
+              output_file: $output_file,
               output_sha256: $output_sha256,
               output_bytes: $output_bytes,
-              upstream_whisper_repository: "https://github.com/openai/whisper",
-              upstream_whisper_commit: $upstream_whisper_commit,
-              converter_repository: "https://github.com/ggml-org/whisper.cpp",
-              converter_commit: $whisper_cpp_commit,
+              upstream: "https://github.com/openai/whisper",
+              upstream_commit: $upstream_commit,
+              converter: "https://github.com/ggml-org/whisper.cpp",
+              converter_commit: $converter_commit,
               converter_script: "models/convert-pt-to-ggml.py",
-              converter_url: $converter_url,
-              converted_at_utc: $converted_at,
-              usage: "whisper-cli -m ggml-small.en.bin -f audio.wav",
-              offline_note: "Once this GGML file and a compatible whisper.cpp whisper-cli binary are local, model loading and transcription do not require downloading model weights."
+              converted_at_utc: $converted_at
             }' > "${GGML_MANIFEST_NAME}"
 
           sha256sum --check --strict "${GGML_SHA_NAME}"
 
-      - name: Build new PyTorch offline model ZIP
+      - name: Build PyTorch ZIP
         if: steps.state.outputs.new_release == 'true'
         shell: bash
         env:
@@ -312,94 +250,56 @@ jobs:
           RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
         run: |
           set -euo pipefail
-
           model_bytes="$(stat --format='%s' "${MODEL_FILENAME}")"
-          published_at="$(date --utc +'%Y-%m-%dT%H:%M:%SZ')"
+          packaged_at="$(date --utc +'%Y-%m-%dT%H:%M:%SZ')"
 
           jq -n \
-            --arg schema_version "1" \
-            --arg model "openai/whisper small.en" \
-            --arg model_filename "${MODEL_FILENAME}" \
-            --arg model_sha256 "${EXPECTED_SHA}" \
-            --arg model_url "${MODEL_URL}" \
+            --arg file "${MODEL_FILENAME}" \
+            --arg sha256 "${EXPECTED_SHA}" \
+            --arg url "${MODEL_URL}" \
             --arg upstream_commit "${UPSTREAM_COMMIT}" \
             --arg release_tag "${RELEASE_TAG}" \
-            --arg published_at "${published_at}" \
-            --argjson model_bytes "${model_bytes}" \
+            --arg packaged_at "${packaged_at}" \
+            --argjson bytes "${model_bytes}" \
             '{
-              schema_version: ($schema_version | tonumber),
-              model: $model,
-              language: "English",
-              task: "automatic speech recognition / transcription",
-              format: "PyTorch checkpoint (.pt)",
-              model_filename: $model_filename,
-              model_sha256: $model_sha256,
-              model_bytes: $model_bytes,
-              upstream_model_url: $model_url,
-              upstream_repository: "https://github.com/openai/whisper",
+              schema_version: 1,
+              model: "openai/whisper small.en",
+              file: $file,
+              sha256: $sha256,
+              bytes: $bytes,
+              upstream_url: $url,
               upstream_commit: $upstream_commit,
-              local_release_tag: $release_tag,
-              packaged_at_utc: $published_at,
-              offline_note: "After this ZIP and a compatible Whisper runtime are available locally, loading the model weights does not require an external network connection."
+              release_tag: $release_tag,
+              packaged_at_utc: $packaged_at
             }' > manifest.json
 
           printf '%s  %s\n' "${EXPECTED_SHA}" "${MODEL_FILENAME}" > SHA256SUMS
 
           cat > MODEL-README.txt <<EOF
-          OpenAI Whisper small.en offline model weights
-          ==============================================
+          OpenAI Whisper small.en
 
-          Model file: ${MODEL_FILENAME}
-          SHA-256: ${EXPECTED_SHA}
-          Upstream: https://github.com/openai/whisper
-          Upstream commit: ${UPSTREAM_COMMIT}
+          file: ${MODEL_FILENAME}
+          sha256: ${EXPECTED_SHA}
+          source: https://github.com/openai/whisper
+          commit: ${UPSTREAM_COMMIT}
 
-          This package contains the official OpenAI Whisper small.en model checkpoint
-          plus integrity and source metadata. It does not contain the Whisper runtime,
-          PyTorch, Python, or FFmpeg.
-
-          Example offline loading after extracting this ZIP:
-
-              import whisper
-              model = whisper.load_model("small.en", download_root="./whisper-small-en")
-              result = model.transcribe("audio.mp3", language="en")
-              print(result["text"])
-
-          The extracted directory passed as download_root must contain small.en.pt.
-          Runtime dependencies must already be installed locally before going offline.
-
-          Upstream license:
-          https://github.com/openai/whisper/blob/main/LICENSE
+          Model data only. Runtime not included.
           EOF
 
           zip -1 "${ASSET_NAME}" \
-            "${MODEL_FILENAME}" \
-            manifest.json \
-            SHA256SUMS \
-            MODEL-README.txt
-
+            "${MODEL_FILENAME}" manifest.json SHA256SUMS MODEL-README.txt
           sha256sum "${ASSET_NAME}" > "${ASSET_NAME}.sha256"
 
           cat > release-notes.md <<EOF
-          ## OpenAI Whisper \`small.en\` offline model
+          OpenAI Whisper \`small.en\`
 
-          Verified and repackaged from the official OpenAI Whisper model source, with
-          a whisper.cpp-compatible GGML conversion produced by the official
-          \`models/convert-pt-to-ggml.py\` converter.
-
-          - **Model:** \`small.en\`
-          - **Checkpoint:** \`${MODEL_FILENAME}\`
-          - **Model SHA-256:** \`${EXPECTED_SHA}\`
-          - **Upstream Whisper commit:** \`${UPSTREAM_COMMIT}\`
-          - **PyTorch ZIP:** \`${ASSET_NAME}\`
-          - **whisper.cpp model:** \`${GGML_FILENAME}\`
-
-          The release includes integrity and provenance metadata for both formats.
-          Each manual workflow run also emits a GitHub Actions artifact containing the
-          GGML model for clients that can download workflow artifacts through GitHub's API.
+          - SHA-256: \`${EXPECTED_SHA}\`
+          - PyTorch: \`${ASSET_NAME}\`
+          - whisper.cpp: \`${GGML_FILENAME}\`
+          - OpenAI commit: \`${UPSTREAM_COMMIT}\`
           EOF
 
-      - name: Publish new GitHub Release
+      - name: Publish release
         if: steps.state.outputs.new_release == 'true'
         shell: bash
         env:
@@ -408,7 +308,6 @@ jobs:
           SHORT_SHA: ${{ steps.upstream.outputs.short_sha }}
         run: |
           set -euo pipefail
-
           gh release create "${RELEASE_TAG}" \
             "${ASSET_NAME}" \
             "${ASSET_NAME}.sha256" \
@@ -417,11 +316,11 @@ jobs:
             "${GGML_MANIFEST_NAME}" \
             --repo "${GITHUB_REPOSITORY}" \
             --target "${GITHUB_SHA}" \
-            --title "OpenAI Whisper small.en offline model (${SHORT_SHA})" \
+            --title "Whisper small.en (${SHORT_SHA})" \
             --notes-file release-notes.md \
             --latest
 
-      - name: Backfill GGML assets onto existing release
+      - name: Backfill GGML
         if: steps.state.outputs.new_release == 'false' && steps.state.outputs.needs_conversion == 'true'
         shell: bash
         env:
@@ -429,7 +328,6 @@ jobs:
           RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
         run: |
           set -euo pipefail
-
           gh release upload "${RELEASE_TAG}" \
             "${GGML_FILENAME}" \
             "${GGML_SHA_NAME}" \
@@ -437,7 +335,7 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --clobber
 
-      - name: Fetch existing GGML assets for artifact refresh
+      - name: Fetch GGML
         if: steps.state.outputs.needs_conversion == 'false'
         shell: bash
         env:
@@ -445,15 +343,13 @@ jobs:
           RELEASE_TAG: ${{ steps.upstream.outputs.release_tag }}
         run: |
           set -euo pipefail
-
           gh release download "${RELEASE_TAG}" \
             --repo "${GITHUB_REPOSITORY}" \
             --pattern "ggml-small.en*"
-
           sha256sum --check --strict "${GGML_SHA_NAME}"
 
-      - name: Upload connector-friendly GGML Actions artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload Actions artifact
+        uses: actions/upload-artifact@v7
         with:
           name: openai-whisper-small-en-ggml-${{ steps.upstream.outputs.short_sha }}
           path: |
@@ -464,18 +360,15 @@ jobs:
           compression-level: 0
           retention-days: 90
 
-      - name: Summarize published downloads
+      - name: Summary
         shell: bash
         env:
           SHORT_SHA: ${{ steps.upstream.outputs.short_sha }}
         run: |
-          {
-            echo
-            echo "### Downloads"
-            echo
-            echo "- PyTorch ZIP: https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${ASSET_NAME}"
-            echo "- whisper.cpp GGML: https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${GGML_FILENAME}"
-            echo "- Actions artifact: \`openai-whisper-small-en-ggml-${SHORT_SHA}\`"
-            echo
-            echo "The Actions artifact is recreated on every manual run so GitHub API/connector clients can retrieve the GGML model even when the upstream model has not changed."
-          } >> "${GITHUB_STEP_SUMMARY}"
+          cat >> "${GITHUB_STEP_SUMMARY}" <<EOF
+
+          ### Files
+          - https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${GGML_FILENAME}
+          - https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${ASSET_NAME}
+          - \`openai-whisper-small-en-ggml-${SHORT_SHA}\`
+          EOF
