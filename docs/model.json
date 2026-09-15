@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "model": "openai/whisper small.en",
   "language": "en",
   "task": "transcription",
@@ -9,7 +9,18 @@
   "prompt": "https://jwedwards-usa.github.io/ai-models/chatgpt-prompt.txt",
   "release": "https://github.com/jwedwards-usa/ai-models/releases/latest",
   "artifacts": {
-    "ggml": {
+    "whisper_cpp_zip": {
+      "file": "ggml-small.en.zip",
+      "url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip",
+      "sha256": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.zip.sha256",
+      "contains": [
+        "ggml-small.en.bin",
+        "ggml-small.en.bin.sha256",
+        "ggml-small.en.manifest.json"
+      ],
+      "preferred": true
+    },
+    "whisper_cpp_raw": {
       "file": "ggml-small.en.bin",
       "url": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin",
       "sha256": "https://github.com/jwedwards-usa/ai-models/releases/latest/download/ggml-small.en.bin.sha256",
@@ -23,7 +34,7 @@
     }
   },
   "actions_artifact": {
-    "workflow": "Update Whisper small.en offline model",
+    "workflow": "Update Whisper small.en",
     "name": "openai-whisper-small-en-ggml-<model-sha-prefix>",
     "retention_days": 90
   },
